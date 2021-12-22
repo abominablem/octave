@@ -5,12 +5,11 @@ Created on Mon Dec 20 17:07:44 2021
 @author: marcu
 """
 
-import tkinter as tk
-
 """ COLOURS """
 COLOUR_BACKGROUND ="#E8E9ED"
 COLOUR_TITLEBAR = "#20063B"
 COLOUR_OFFWHITE_TEXT = "#FEFEFE"
+COLOUR_INTERFACE_BUTTON = "#d5e0d8"
 
 """ GLOBAL VARS """
 LOG_LEVEL = "all"
@@ -61,14 +60,14 @@ GRID_STICKY_PADDING_LARGE = {
     }
 
 BTN_MAIN_ARGS = {
-    "background" : COLOUR_BACKGROUND,
+    "background" : COLOUR_INTERFACE_BUTTON,
     "font" : FONT_INTERFACE_BUTTON,
     "borderwidth": 3,
     "highlightthickness": 3
     }
 
 BTN_STD_ARGS = {
-    "background" : COLOUR_BACKGROUND,
+    "background" : COLOUR_INTERFACE_BUTTON,
     "font" : FONT_INTERFACE_BUTTON,
     "borderwidth": 2
     }
