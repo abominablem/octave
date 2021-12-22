@@ -1,0 +1,86 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Dec 20 17:07:44 2021
+
+@author: marcu
+"""
+
+import tkinter as tk
+
+""" COLOURS """
+COLOUR_BACKGROUND ="#E8E9ED"
+COLOUR_TITLEBAR = "#20063B"
+COLOUR_OFFWHITE_TEXT = "#FEFEFE"
+
+""" GLOBAL VARS """
+LOG_LEVEL = "all"
+DEBUG = True
+
+""" FONTS """
+FONT_OCTAVE_TITLE = ("Constantia", 32, "bold")
+FONT_LABEL_BOLD = ("Helvetica", 16, "bold")
+FONT_TEXT_DEFAULT = ("Helvetica", 10)
+FONT_BOX_HEADER = ("Helvetica", 12, "bold")
+FONT_INTERFACE_BUTTON = ("Helvetica", 16, "bold")
+FONT_INTERFACE_BUTTON_LIGHT = ("Helvetica", 10)
+
+""" PADDING """
+PADDING_SMALL = 5
+PADDING_MEDIUM = 8
+PADDING_LARGE = 20
+
+COLUMNSPAN_ALL = 100
+
+PADDING_SMALL_TOP_ONLY = (PADDING_SMALL, 0)
+PADDING_SMALL_BOTTOM_ONLY = (0, PADDING_SMALL)
+PADDING_MEDIUM_TOP_ONLY = (PADDING_MEDIUM, 0)
+PADDING_MEDIUM_BOTTOM_ONLY = (0, PADDING_MEDIUM)
+PADDING_LARGE_TOP_ONLY = (PADDING_LARGE, 0)
+PADDING_LARGE_BOTTOM_ONLY = (0, PADDING_LARGE)
+
+PADDING_SMALL_LEFT_ONLY = (PADDING_SMALL, 0)
+PADDING_SMALL_RIGHT_ONLY = (0, PADDING_SMALL)
+PADDING_MEDIUM_LEFT_ONLY = (PADDING_MEDIUM, 0)
+PADDING_MEDIUM_RIGHT_ONLY = (0, PADDING_MEDIUM)
+PADDING_LARGE_LEFT_ONLY = (PADDING_LARGE, 0)
+PADDING_LARGE_RIGHT_ONLY = (0, PADDING_LARGE)
+
+""" TK KWARGS """
+GRID_STICKY = {"sticky" : "nesw"}
+
+GRID_STICKY_PADDING_SMALL = {
+    "sticky" : "nesw",
+    "pady" : PADDING_SMALL,
+    "padx" : PADDING_SMALL
+    }
+
+GRID_STICKY_PADDING_LARGE = {
+    "sticky" : "nesw",
+    "pady" : PADDING_LARGE,
+    "padx" : PADDING_LARGE
+    }
+
+BTN_MAIN_ARGS = {
+    "background" : COLOUR_BACKGROUND,
+    "font" : FONT_INTERFACE_BUTTON,
+    "borderwidth": 3,
+    "highlightthickness": 3
+    }
+
+BTN_STD_ARGS = {
+    "background" : COLOUR_BACKGROUND,
+    "font" : FONT_INTERFACE_BUTTON,
+    "borderwidth": 2
+    }
+
+BTN_LIGHT_ARGS = {
+    "background" : COLOUR_BACKGROUND,
+    "font" : FONT_INTERFACE_BUTTON_LIGHT,
+    "borderwidth": 2
+    }
+
+LBL_STD_ARGS = {
+    "background" : COLOUR_BACKGROUND,
+    "font" : FONT_LABEL_BOLD,
+    "anchor" : "w"
+    }
