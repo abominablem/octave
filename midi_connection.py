@@ -84,7 +84,12 @@ class MidiRecording:
         self.pygame_events = []
         self.midi_events = []
         self._ecount = 0
-        self.midi_file = midiutil.MIDIFile(1, eventtime_is_ticks = True)
+        self.midi_file = midiutil.MIDIFile(
+            numTracks = 1,
+            eventtime_is_ticks = True,
+            file_format = 1,
+            ticks_per_quarternote = 600 #100 bpm
+            )
 
     @log_class
     def log(self, events):
@@ -94,7 +99,6 @@ class MidiRecording:
             midi_event = MidiEvent(event)
             midi_event.order = self._ecount
             self.midi_events.append(midi_event)
-            print(midi_event)
 
     def get_event_duration(self, event):
         if not isinstance(event, MidiEvent):
@@ -143,7 +147,6 @@ class MidiRecording:
 
         event.duration = self.get_event_duration(event)
         event.time = self.get_event_time(event)
-        print(event)
         if event.status == "note-on":
             self.midi_file.addNote(
                 track = 0,
@@ -165,6 +168,7 @@ class MidiRecording:
 
     @log_class
     def write(self, filename):
+        self.filename = filename
         for event in self.midi_events:
             self.add_event_to_midi_file(event)
         self.write_file(filename)
@@ -187,6 +191,7 @@ class MidiConnection:
         self.recording = True
         midi.init()
         self.set_input()
+        self.midi = MidiRecording()
         self.recording_thread = threading.Thread(target = self._start_recording)
         self.recording_thread.start()
 
@@ -205,7 +210,8 @@ class MidiConnection:
 
         midi.quit()
 
-        self.midi.write("D:\\Users\\Marcus\\Documents\\R Documents\\Coding\\Python\\Octave\\test.mid")
+        self.midi.write("D:\\Users\\Marcus\\Documents\\R Documents\\Coding\\Python\\Octave\\test.midi")
+        self.midi.midi_file = None
 
     @log_class
     def start_playback(self):
