@@ -114,3 +114,5 @@ dmypy.json
 .pyre/
 common/Octave Logo.psd
 *.db
+*.mid
+*.midi
