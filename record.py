@@ -8,15 +8,16 @@ Created on Tue Dec 21 23:16:08 2021
 import sys
 sys.path.append("D:\\Users\\Marcus\\Documents\\R Documents\\Coding\\Python\\Packages")
 import tkinter as tk
+from pygame import midi
+midi.init()
+
 from mh_logging import log_class
 import tk_arrange as tka
 
-from sqlite_tablecon import TableCon
 import global_const as g
-import futil
 log_class = log_class(g.LOG_LEVEL)
-from base import OctaveFrameBase, OctaveWindowBase, octave_db
-
+from base import OctaveWindowBase, octave_db
+from midi_connection import MidiConnection
 
 class OctaveRecord(OctaveWindowBase):
     @log_class
@@ -25,46 +26,130 @@ class OctaveRecord(OctaveWindowBase):
         self.title = title
         super().__init__(self.master, self.title)
 
+        self.midi_connection = MidiConnection()
+
         self.widget_frame = tk.Frame(self.window, bg = g.COLOUR_BACKGROUND)
 
         """ Book dropdown """
         bk_dd_label = tk.Label(
             self.widget_frame, text = "Select book", **g.LBL_STD_ARGS)
-        bk_dd_options = octave_db.books.select(
-            "SELECT book_id, book_name FROM books")
-        if bk_dd_options == []: #TODO test this
-            bk_dd_options = ["No books created yet"]
+
+        bk_dd_options = ["None"]
+        for book in octave_db.books.select("SELECT book_id, book_name FROM books"):
+            bk_dd_options.append('%s - %s' % book)
+
         self.book_dd_var = tk.StringVar(self.master)
+        self.book_dd_var.set(bk_dd_options[0])
         self.book_dropdown = tk.OptionMenu(
             self.widget_frame, self.book_dd_var, *bk_dd_options)
+        self.book_dropdown.config(
+            font = g.FONT_TEXT_DEFAULT, bg = g.COLOUR_INTERFACE_BUTTON)
 
         """ Buttons """
         self.btn_add_book = tk.Button(
             self.widget_frame,
             text = "Create new book",
-            command = self.test_cmd,
-            **g.BTN_STD_ARGS
+            command = self.add_book,
+            **g.BTN_LIGHT_ARGS
+            )
+        self.btn_save_record = tk.Button(
+            self.widget_frame,
+            text = "Save record",
+            command = self.save_record,
+            **g.BTN_LIGHT_ARGS
             )
 
+        self.btn_start_recording = tk.Button(
+            self.widget_frame,
+            text = "Start recording",
+            command = self.start_recording,
+            **g.BTN_LIGHT_ARGS
+            )
+        self.btn_stop_recording = tk.Button(
+            self.widget_frame,
+            text = "Stop recording",
+            command = self.stop_recording,
+            **g.BTN_LIGHT_ARGS
+            )
+        self.btn_start_playback = tk.Button(
+            self.widget_frame,
+            text = "Start playback",
+            command = self.start_playback,
+            **g.BTN_LIGHT_ARGS
+            )
+        self.btn_stop_playback = tk.Button(
+            self.widget_frame,
+            text = "Stop playback",
+            command = self.stop_playback,
+            **g.BTN_LIGHT_ARGS
+            )
+
+        self.btn_start_recording["state"] = tk.NORMAL
+        self.btn_stop_recording["state"] = tk.DISABLED
+        self.btn_start_playback["state"] = tk.NORMAL
+        self.btn_stop_playback["state"] = tk.DISABLED
+
         widgets = {1: {'widget': self.title_bar,
-                       'grid_kwargs': g.GRID_STICKY},
-                   2: {'widget': bk_dd_label,
-                       'grid_kwargs': g.GRID_STICKY},
-                   3: {'widget': self.book_dropdown,
                        'grid_kwargs': g.GRID_STICKY,
                        'stretch_width': True},
+                   2: {'widget': bk_dd_label,
+                       'grid_kwargs': g.GRID_STICKY_PADDING_SMALL},
+                   3: {'widget': self.book_dropdown,
+                       'grid_kwargs': g.GRID_STICKY_PADDING_SMALL,
+                       'stretch_width': True},
                    4: {'widget': self.btn_add_book,
-                       'grid_kwargs': g.GRID_STICKY},
+                       'grid_kwargs': g.GRID_STICKY_PADDING_SMALL},
+                   5: {'widget': self.btn_save_record,
+                       'grid_kwargs': g.GRID_STICKY_PADDING_SMALL},
+                   6: {'widget': self.btn_start_recording,
+                       'grid_kwargs': g.GRID_STICKY_PADDING_SMALL,
+                       'stretch_width': True},
+                   7: {'widget': self.btn_stop_recording,
+                       'grid_kwargs': g.GRID_STICKY_PADDING_SMALL,
+                       'stretch_width': True},
+                   8: {'widget': self.btn_start_playback,
+                       'grid_kwargs': g.GRID_STICKY_PADDING_SMALL,
+                       'stretch_width': True},
+                   9: {'widget': self.btn_stop_playback,
+                       'grid_kwargs': g.GRID_STICKY_PADDING_SMALL,
+                       'stretch_width': True},
                    }
-        self.widget_set = tka.WidgetSet(self.widget_frame, widgets, layout = [1, [2, 3, 4]])
+        self.widget_set = tka.WidgetSet(
+            self.widget_frame, widgets,
+            layout = [[1], [2, 3, 4, 5], [6, 7, 8, 9]]
+            )
         self.widget_set.grid(row = 1, column = 0, **g.GRID_STICKY)
         self.window.columnconfigure(0, weight = 1)
         self.window.rowconfigure(1, weight = 1)
 
     @log_class
-    def test_cmd(self, event = None):
-        print("tsetsg")
+    def start_recording(self, event = None):
+        self.btn_start_recording["state"] = tk.DISABLED
+        self.btn_stop_recording["state"] = tk.NORMAL
+        self.midi_connection.start_recording()
+
+    @log_class
+    def stop_recording(self, event = None):
+        self.btn_start_recording["state"] = tk.NORMAL
+        self.btn_stop_recording["state"] = tk.DISABLED
+        self.midi_connection.stop_recording()
+
+    @log_class
+    def start_playback(self, event = None):
+        return
+
+    @log_class
+    def stop_playback(self, event = None):
+        return
+
+    @log_class
+    def add_book(self, event = None):
+        print("add_book")
 
     @log_class
     def get_book(self):
         return self.book_dd_var.get()
+
+    @log_class
+    def save_record(self, event = None):
+        print("save_record")
