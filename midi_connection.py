@@ -7,12 +7,13 @@ Created on Thu Dec 23 23:10:11 2021
 
 import sys
 sys.path.append("D:\\Users\\Marcus\\Documents\\R Documents\\Coding\\Python\\Packages")
-from mh_logging import log_class
-log_class = log_class("min")
 from pygame import midi
-# from pygame import fastevents
 import midiutil
 import threading
+import time
+
+from mh_logging import log_class
+log_class = log_class("min")
 
 status_map = {
     144: "note-on",
@@ -205,21 +206,25 @@ class MidiConnection:
     @log_class
     def stop_recording(self):
         self.recording = False
-         # don't quit until all inputs have been read from the buffer
-        self.recording_thread.join()
+         # wait until all inputs have been read from the buffer and logged
+        try:
+            self.recording_thread.join()
+        except AttributeError:
+            midi.quit()
+            return
 
         midi.quit()
 
-        self.midi.write("D:\\Users\\Marcus\\Documents\\R Documents\\Coding\\Python\\Octave\\test.midi")
-        self.midi.midi_file = None
+        self.midi.write(".\\data\\midi\\MIDI_Recording_%s.midi"
+                        % time.strftime("%Y-%m-%d_%H.%M.%S"))
 
     @log_class
     def start_playback(self):
-        print("start p")
+        print("start_playback")
 
     @log_class
     def stop_playback(self):
-        print("stop p")
+        print("stop_playback")
 
     @log_class
     def get_devices(self):
@@ -264,23 +269,29 @@ class MidiConnection:
 
         self.output = midi.Output(self.output_device_id)
 
+    @log_class
     def close():
         midi.quit()
 
 
 if __name__ == "__main__":
     import tkinter as tk
-
     class TestApp:
         @log_class
         def __init__(self):
             self.root = tk.Tk()
             self.midi_con = MidiConnection()
-            btn_start_rec = tk.Button(self.root, text = "start rec", command = self.midi_con.start_recording, font = ("Constantia", 32, "bold"))
-            btn_stop_rec = tk.Button(self.root, text = "stop rec",  command = self.midi_con.stop_recording, font = ("Constantia", 32, "bold"))
+            btn_start_rec = tk.Button(
+                self.root, text = "start recording",
+                command = self.midi_con.start_recording,
+                font = ("Constantia", 32, "bold"))
+            btn_stop_rec = tk.Button(
+                self.root, text = "stop recording",
+                command = self.midi_con.stop_recording,
+                font = ("Constantia", 32, "bold"))
             btn_start_rec.pack()
             btn_stop_rec.pack()
             self.root.mainloop()
 
-    TestApp()
-    midi.quit()
+    app = TestApp()
+    app.midi_con.close()
