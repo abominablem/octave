@@ -59,35 +59,51 @@ class OctaveRecord(OctaveWindowBase):
             **g.BTN_LIGHT_ARGS
             )
 
-        self.btn_start_recording = tk.Button(
-            self.widget_frame,
-            text = "Start recording",
-            command = self.start_recording,
-            **g.BTN_LIGHT_ARGS
-            )
-        self.btn_stop_recording = tk.Button(
-            self.widget_frame,
-            text = "Stop recording",
-            command = self.stop_recording,
-            **g.BTN_LIGHT_ARGS
-            )
-        self.btn_start_playback = tk.Button(
-            self.widget_frame,
-            text = "Start playback",
-            command = self.start_playback,
-            **g.BTN_LIGHT_ARGS
-            )
-        self.btn_stop_playback = tk.Button(
-            self.widget_frame,
-            text = "Stop playback",
-            command = self.stop_playback,
-            **g.BTN_LIGHT_ARGS
+        buttons = {1: {"name": "btn_start_recording",
+                       "label": "Start recording",
+                       "bindings": {"event": "<1>",
+                                    "function": self.start_recording
+                                    },
+                       "widget_kwargs": g.BTN_LIGHT_ARGS,
+                       "grid_kwargs": g.GRID_STICKY,
+                       "stretch_width": True},
+                   2: {"name": "btn_stop_recording",
+                       "label": "Stop recording",
+                       "bindings": {"event": "<1>",
+                                    "function": self.stop_recording
+                                    },
+                       "widget_kwargs": g.BTN_LIGHT_ARGS,
+                       "grid_kwargs": g.GRID_STICKY,
+                       "stretch_width": True},
+                   3: {"name": "btn_start_playback",
+                       "label": "Start playback",
+                       "bindings": {"event": "<1>",
+                                    "function": self.start_playback
+                                    },
+                       "widget_kwargs": g.BTN_LIGHT_ARGS,
+                       "grid_kwargs": g.GRID_STICKY,
+                       "stretch_width": True},
+                   4: {"name": "btn_stop_playback",
+                       "label": "Stop playback",
+                       "bindings": {"event": "<1>",
+                                    "function": self.stop_playback
+                                    },
+                       "widget_kwargs": g.BTN_LIGHT_ARGS,
+                       "grid_kwargs": g.GRID_STICKY,
+                       "stretch_width": True},
+                   }
+
+        self.button_set = tka.ButtonSet(
+            master = self.widget_frame,
+            buttons = buttons,
+            layout = [[1, 2, 3, 4]],
+            frm_kwargs = {"bg": g.COLOUR_BACKGROUND}
             )
 
-        self.btn_start_recording["state"] = tk.NORMAL
-        self.btn_stop_recording["state"] = tk.DISABLED
-        self.btn_start_playback["state"] = tk.NORMAL
-        self.btn_stop_playback["state"] = tk.DISABLED
+        self.button_set.btn_start_recording["state"] = tk.NORMAL
+        self.button_set.btn_stop_recording["state"] = tk.DISABLED
+        self.button_set.btn_start_playback["state"] = tk.NORMAL
+        self.button_set.btn_stop_playback["state"] = tk.DISABLED
 
         widgets = {1: {'widget': self.title_bar,
                        'grid_kwargs': g.GRID_STICKY,
@@ -101,22 +117,13 @@ class OctaveRecord(OctaveWindowBase):
                        'grid_kwargs': g.GRID_STICKY_PADDING_SMALL},
                    5: {'widget': self.btn_save_record,
                        'grid_kwargs': g.GRID_STICKY_PADDING_SMALL},
-                   6: {'widget': self.btn_start_recording,
-                       'grid_kwargs': g.GRID_STICKY_PADDING_SMALL,
-                       'stretch_width': True},
-                   7: {'widget': self.btn_stop_recording,
-                       'grid_kwargs': g.GRID_STICKY_PADDING_SMALL,
-                       'stretch_width': True},
-                   8: {'widget': self.btn_start_playback,
-                       'grid_kwargs': g.GRID_STICKY_PADDING_SMALL,
-                       'stretch_width': True},
-                   9: {'widget': self.btn_stop_playback,
+                   6: {'widget': self.button_set,
                        'grid_kwargs': g.GRID_STICKY_PADDING_SMALL,
                        'stretch_width': True},
                    }
         self.widget_set = tka.WidgetSet(
             self.widget_frame, widgets,
-            layout = [[1], [2, 3, 4, 5], [6, 7, 8, 9]]
+            layout = [[1], [2, 3, 4, 5], [6]]
             )
         self.widget_set.grid(row = 1, column = 0, **g.GRID_STICKY)
         self.window.columnconfigure(0, weight = 1)
@@ -124,23 +131,25 @@ class OctaveRecord(OctaveWindowBase):
 
     @log_class
     def start_recording(self, event = None):
-        self.btn_start_recording["state"] = tk.DISABLED
-        self.btn_stop_recording["state"] = tk.NORMAL
+        self.button_set.widgets["btn_start_recording"]["state"] = tk.DISABLED
+        self.button_set.widgets["btn_stop_recording"]["state"] = tk.NORMAL
         self.midi_connection.start_recording()
 
     @log_class
     def stop_recording(self, event = None):
-        self.btn_start_recording["state"] = tk.NORMAL
-        self.btn_stop_recording["state"] = tk.DISABLED
+        self.button_set.widgets["btn_start_recording"]["state"] = tk.NORMAL
+        self.button_set.widgets["btn_stop_recording"]["state"] = tk.DISABLED
         self.midi_connection.stop_recording()
 
     @log_class
     def start_playback(self, event = None):
-        return
+        self.btn_start_playback["state"] = tk.DISABLED
+        self.btn_stop_playback["state"] = tk.NORMAL
 
     @log_class
     def stop_playback(self, event = None):
-        return
+        self.btn_start_playback["state"] = tk.NORMAL
+        self.btn_stop_playback["state"] = tk.DISABLED
 
     @log_class
     def add_book(self, event = None):
