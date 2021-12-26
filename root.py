@@ -12,7 +12,7 @@ from mh_logging import log_class
 import tk_arrange as tka
 
 import global_const as g
-from base import OctaveFrameBase
+from base import OctaveFrameBase, OctaveMenuBar
 log_class = log_class(g.LOG_LEVEL)
 
 from play import OctavePlay
@@ -24,6 +24,9 @@ class Octave:
         self.root = tk.Tk()
         self.root.title("Octave - MIDI Recording and Playback")
         self.root.protocol("WM_DELETE_WINDOW", self.destroy)
+
+        self.menu_bar = OctaveMenuBar(self.root)
+        self.root.config(menu = self.menu_bar)
 
         self.widget_frame = tk.Frame(self.root, bg = g.COLOUR_BACKGROUND)
         self.title_bar = OctaveFrameBase(self.widget_frame, title = "Octave")
