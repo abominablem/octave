@@ -13,7 +13,7 @@ import threading
 import time
 
 from mh_logging import log_class
-log_class = log_class("all")
+log_class = log_class("min")
 
 MIDI_STATUS_MAP = {
     144: "note-on",
@@ -82,15 +82,7 @@ class MidiEvent:
 class MidiRecording:
     @log_class
     def __init__(self):
-        self.pygame_events = []
-        self.midi_events = []
-        self._ecount = 0
-        self.midi_file = midiutil.MIDIFile(
-            numTracks = 1,
-            eventtime_is_ticks = True,
-            file_format = 1,
-            ticks_per_quarternote = 600 #100 bpm
-            )
+        self.reset(reset_filename = True)
         self.binds = {"<<MidiEvent>>": []}
 
     @log_class
@@ -133,7 +125,7 @@ class MidiRecording:
                 return duration
         # assume event continues until last recorded event if no explicit end
         # is found
-        return self.get_max_timestamp() - event["timestamp"]
+        return self.get_max_timestamp() - event.timestamp
 
     def get_event_time(self, event):
         if not isinstance(event, MidiEvent):
@@ -196,6 +188,20 @@ class MidiRecording:
         with open(filename, 'wb') as file_con:
             self.midi_file.writeFile(file_con)
 
+    def reset(self, reset_filename = False):
+        self.pygame_events = []
+        self.midi_events = []
+        self._ecount = 0
+        self.midi_file = midiutil.MIDIFile(
+            numTracks = 1,
+            eventtime_is_ticks = True,
+            file_format = 1,
+            ticks_per_quarternote = 600 #100 bpm
+            )
+        if reset_filename:
+            self.filename = None
+
+
 class MidiConnection:
     @log_class
     def __init__(self):
@@ -207,7 +213,8 @@ class MidiConnection:
                       "<<RecordingStop>>": []}
         self.midi.bind(
             "<<MidiEvent>>",
-            lambda event: self.event_generate("<<MidiEvent>>", event)
+            lambda *args, **kwargs:
+                self.event_generate("<<MidiEvent>>", *args, **kwargs)
             )
 
     @log_class
@@ -219,7 +226,6 @@ class MidiConnection:
 
     @log_class
     def event_generate(self, sequence, *args, **kwargs):
-        print(sequence)
         try:
             for func in self.binds[sequence]:
                 func(*args, **kwargs)
@@ -231,7 +237,6 @@ class MidiConnection:
         self.recording = True
         midi.init()
         self.set_input()
-        self.midi = MidiRecording()
         self.event_generate("<<RecordingStart>>")
         self.recording_thread = threading.Thread(target = self._start_recording)
         self.recording_thread.start()
@@ -257,6 +262,8 @@ class MidiConnection:
 
         self.midi.write(".\\data\\midi\\MIDI_Recording_%s.midi"
                         % time.strftime("%Y-%m-%d_%H.%M.%S"))
+
+        self.event_generate("<<RecordingWrite>>")
 
     @log_class
     def start_playback(self):
