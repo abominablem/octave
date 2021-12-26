@@ -77,7 +77,7 @@ class OctaveFrameBase:
 
 class OctaveMenuBar(tk.Menu):
     @log_class
-    def __init__(self, master):
+    def __init__(self, master, include_midi = False):
         self._menu_bar_kwargs = {
             "fg": g.COLOUR_MENU_BAR_FOREGROUND,
             "activebackground": g.COLOUR_MENU_BAR_ACTIVE_BACKGROUND,
@@ -90,12 +90,16 @@ class OctaveMenuBar(tk.Menu):
         self.add_menu("File", ["New", "Open", "Save", "Save As",
                                "__seperator__", "Exit", "File"])
 
-        self.add_menu("Tools", ["MIDI Input device", "MIDI Output device",
-                                "Refresh MIDI devices"])
+        tools_commands = []
+        if include_midi:
+            tools_commands += ["MIDI Input device", "MIDI Output device",
+                               "Refresh MIDI devices"]
+        self.add_menu("Tools", tools_commands)
 
     @log_class
     def add_menu(self, label, commands):
         """ Iteratively add a list of labels and commands to a menu"""
+        if commands == []: return
         menu = tk.Menu(
             self, bg = g.COLOUR_MENU_BAR_BACKGROUND, **self._menu_bar_kwargs)
         self.menus_dict[label] = menu
@@ -138,7 +142,7 @@ class OctaveWindowBase:
         self.master = master
         self.window = tk.Toplevel(self.master, bg = g.COLOUR_BACKGROUND)
         self.master.eval(f'tk::PlaceWindow {self.window} center')
-        self.menu_bar = OctaveMenuBar(self.window)
+        self.menu_bar = OctaveMenuBar(self.window, include_midi = True)
         self.window.config(menu = self.menu_bar)
         self.title_bar = OctaveFrameBase(self.window, title = title)
 
