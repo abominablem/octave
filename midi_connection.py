@@ -13,9 +13,9 @@ import threading
 import time
 
 from mh_logging import log_class
-log_class = log_class("min")
+log_class = log_class("all")
 
-status_map = {
+MIDI_STATUS_MAP = {
     144: "note-on",
     128: "note-off",
     176: "control-change",
@@ -38,7 +38,7 @@ class MidiEvent:
             self.channel = None; self.timestamp = None
         else:
             self.status_id = event[0][0]
-            self.status = status_map[self.status_id]
+            self.status = MIDI_STATUS_MAP[self.status_id]
             self.note = event[0][1]
             self.velocity = event[0][2]
             self.channel = event[0][3]
@@ -91,6 +91,22 @@ class MidiRecording:
             file_format = 1,
             ticks_per_quarternote = 600 #100 bpm
             )
+        self.binds = {"<<MidiEvent>>": []}
+
+    @log_class
+    def bind(self, sequence, func):
+        try:
+            self.binds[sequence].append(func)
+        except KeyError:
+            self.binds[sequence] = [func]
+
+    @log_class
+    def event_generate(self, sequence, *args, **kwargs):
+        try:
+            for func in self.binds[sequence]:
+                func(*args, **kwargs)
+        except KeyError:
+            pass
 
     @log_class
     def log(self, events):
@@ -100,6 +116,7 @@ class MidiRecording:
             midi_event = MidiEvent(event)
             midi_event.order = self._ecount
             self.midi_events.append(midi_event)
+            self.event_generate("<<MidiEvent>>", midi_event)
 
     def get_event_duration(self, event):
         if not isinstance(event, MidiEvent):
@@ -128,7 +145,7 @@ class MidiRecording:
         return unsorted_list.sort(key = lambda x: x[1])
 
     def event_status(self, event):
-        return status_map[event[0][0]]
+        return MIDI_STATUS_MAP[event[0][0]]
 
     def get_max_timestamp(self):
         return max(self.midi_events, key = lambda x: x.timestamp).timestamp
@@ -186,6 +203,28 @@ class MidiConnection:
         self.input_device_id = None
         self.output_device_id = None
         self.midi = MidiRecording()
+        self.binds = {"<<MidiEvent>>": [], "<<RecordingStart>>": [],
+                      "<<RecordingStop>>": []}
+        self.midi.bind(
+            "<<MidiEvent>>",
+            lambda event: self.event_generate("<<MidiEvent>>", event)
+            )
+
+    @log_class
+    def bind(self, sequence, func):
+        try:
+            self.binds[sequence].append(func)
+        except KeyError:
+            self.binds[sequence] = [func]
+
+    @log_class
+    def event_generate(self, sequence, *args, **kwargs):
+        print(sequence)
+        try:
+            for func in self.binds[sequence]:
+                func(*args, **kwargs)
+        except KeyError:
+            pass
 
     @log_class
     def start_recording(self):
@@ -193,6 +232,7 @@ class MidiConnection:
         midi.init()
         self.set_input()
         self.midi = MidiRecording()
+        self.event_generate("<<RecordingStart>>")
         self.recording_thread = threading.Thread(target = self._start_recording)
         self.recording_thread.start()
 
@@ -209,11 +249,11 @@ class MidiConnection:
          # wait until all inputs have been read from the buffer and logged
         try:
             self.recording_thread.join()
+            midi.quit()
         except AttributeError:
             midi.quit()
             return
-
-        midi.quit()
+        self.event_generate("<<RecordingStop>>")
 
         self.midi.write(".\\data\\midi\\MIDI_Recording_%s.midi"
                         % time.strftime("%Y-%m-%d_%H.%M.%S"))
@@ -270,7 +310,7 @@ class MidiConnection:
         self.output = midi.Output(self.output_device_id)
 
     @log_class
-    def close():
+    def close(self):
         midi.quit()
 
 
