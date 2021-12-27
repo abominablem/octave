@@ -12,7 +12,7 @@ from datetime import datetime
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib as plt
 
-from midi_connection import MidiConnection, MIDI_STATUS_MAP
+from midi_connection import MidiConnection, MIDI_STATUS_MAP, MidiEvent
 from mh_logging import log_class
 log_class = log_class("min")
 
@@ -30,8 +30,8 @@ class MidiPlot(tk.Frame):
         self.midi_events = []
         self.live_events = []
         self.plotting = False
-        self._plot_buffer = []
-        self._plot_buffer_index = 0
+        self.base_plot_rate = 0.2
+        self._plotted_but_undrawn = 0
         self._last_drawn = datetime.min
 
         self.visual_figure = plt.figure.Figure(figsize=(10, 5), dpi=100)
@@ -46,8 +46,8 @@ class MidiPlot(tk.Frame):
         self.canvas = FigureCanvasTkAgg(figure = self.visual_figure,
                                         master = self)
         self.canvas.get_tk_widget().grid(row = 0, column = 0, sticky = "nesw")
-        self.rowconfigure(0, weight = 1); self.columnconfigure(0, weight = 1)
-        self.draw()
+        self.rowconfigure(0, weight = 1)
+        self.columnconfigure(0, weight = 1)
 
     @log_class
     def start_plotting(self):
@@ -59,18 +59,26 @@ class MidiPlot(tk.Frame):
 
     @log_class
     def scale_axes(self, event):
-        self.ymin = (event.y - 1 if self.ymin is None
-                     else min(self.ymin, event.y - 1))
-        self.ymax = (event.y + 1 if self.ymax is None
-                     else max(self.ymax, event.y + 1))
-        self.xmin = 0
-        self.xmax = (event.x + event.duration if self.xmax is None
-                     else max(self.xmax, event.x + event.duration))
-        self.figure.set(ylim = (self.ymin, self.ymax),
-                        xlim = (self.xmin, self.xmax))
+        """ Update the axis limits based on the x/y coordinates of the
+        specified event """
+        ylim = {}
+        if self.ymin is None or event.y - 1 < self.ymin:
+            ylim["ymin"] = event.y - 1
+
+        if self.ymax is None or event.y + 1 > self.ymax:
+            ylim["ymax"] = event.y + 1
+
+        self.__dict__.update(ylim)
+        if ylim != {}:
+            self.figure.set_ylim(**ylim)
+
+        if self.xmax is None or event.x + event.duration > self.xmax:
+            self.xmax = event.x + event.duration
+            self.figure.set_xlim(xmax = self.xmax)
 
     @log_class
     def log_midi_event(self, event):
+        """ Add MIDI events to the event queue as they are created """
         self.midi_events.append(event)
         if event.status in ["note-on", "note-off"]:
             self.live_events.append(event)
@@ -81,7 +89,8 @@ class MidiPlot(tk.Frame):
 
     @log_class
     def plot(self, event, draw = True):
-        if not self.plotting: return
+        """ Draw a representation of the MIDI event on the canvas """
+        if event.drawn: return
 
         if event.status == "note-on":
             self.figure.add_patch(plt.patches.FancyBboxPatch(
@@ -90,38 +99,48 @@ class MidiPlot(tk.Frame):
                 facecolor = event.note_colour, fill = True,
                 figure = self.visual_figure)
                 )
+            event.drawn = True
         elif event.status == "control-change" and event.note == 64:
             pass
             #TODO add option for pedal graph under main graph
         else:
             return
-
-        if draw:
-            self.scale_axes(event)
-            self.draw()
+        self._plotted_but_undrawn += 1
+        self._draw_dict[draw] += 1
+        if draw: self.draw()
 
     @log_class
-    def draw(self, scale_axes = False):
+    def draw(self):
+        """ Redraw the matplotlib canvas """
         self.canvas.draw()
+        # print("Drew %s MIDI events" % self._plotted_but_undrawn)
+        self._plotted_but_undrawn = 0
         self._last_drawn = datetime.now()
-
-        if scale_axes:
-            drawn_events = [event for event in self.midi_events
-                            if event.status == "note-on"]
-            self.ymin = min(drawn_events, key = lambda event: event.y)
-            self.ymax = max(drawn_events, key = lambda event: event.y)
-            self.xmin = 0
-            self.xmax = max(drawn_events, key = lambda event: event.x)
-            self.figure.set(ylim = (self.ymin, self.ymax),
-                            xlim = (self.xmin, self.xmax))
 
     @log_class
     def _draw_check(self):
-        if (datetime.now() - self._last_drawn).total_seconds() > 1:
-            self.draw()
+        """ Check whether to draw or not based on the time since last drawn and
+        number of events in the plot queue """
+        since_last_draw = (datetime.now() - self._last_drawn).total_seconds()
+        # Plot at least once a second
+        if since_last_draw > 1:
+            return True
+        # For slow event input rates, plot at the base rate
+        elif since_last_draw > self.base_plot_rate and self._plotted_but_undrawn < 5:
+            return True
+        # For medium event input rates, plot every ~1/2 a second
+        elif self._plotted_but_undrawn <= 15 and since_last_draw > 0.5:
+            return True
+        # For fast event input rates, plot at the slowest rate (every second)
+        elif self._plotted_but_undrawn >= 25:
+            return True
+        else:
+            return False
 
     @log_class
     def get_min_timestamp(self):
+        """ Return the earliest timestamp of all MIDI events. Since MIDI events
+        arrive in chronological order, this can be cached """
         if self.midi_events == []:
             return 0
         try:
@@ -133,6 +152,7 @@ class MidiPlot(tk.Frame):
 
     @log_class
     def get_max_timestamp(self):
+        """ Return the last timestamp of all MIDI events. """
         if self.midi_events == []:
             return 0
         self.max_timestamp = max(self.midi_events,
@@ -140,13 +160,8 @@ class MidiPlot(tk.Frame):
         return self.max_timestamp
 
     @log_class
-    def _get_event_buffer_size(self):
-        return len(self.live_events)
-
-    @log_class
     def update_live_events(self, event = None, cartesian_update = False):
-        """
-        Update the list of list events based on either:
+        """ Update the list of list events based on either:
         1. The provided event (if cartesian_update = False)
         2. All currently live events (if cartesian_update = True)
         """
@@ -165,46 +180,24 @@ class MidiPlot(tk.Frame):
 
     @log_class
     def _update_live_events(self, opening_event, closing_event):
+        """ Update the event queue based on the opening/closing event pair
+        Calculate the opening event coordinates, duration, and other
+        plotting arguments. """
         try: self.live_events.remove(opening_event)
         except ValueError: pass
         try: self.live_events.remove(closing_event)
         except ValueError: pass
 
+        event = opening_event
         """ Set helper values for plotting """
-        opening_event.x = (opening_event.timestamp - self.get_min_timestamp())/1000
-        opening_event.y = self._get_y_value(opening_event.note)
-        opening_event.duration = (closing_event.timestamp
-                                  - opening_event.timestamp)/1000
-        opening_event.note_colour = self._get_note_colour(opening_event.note)
+        event.x = (event.timestamp - self.get_min_timestamp())/1000
+        event.y = self._get_y_value(event.note)
+        event.duration = (closing_event.timestamp - event.timestamp)/1000
+        event.note_colour = self._get_note_colour(event.note)
+        event.drawn = False
 
-        self.plot(opening_event)
-        return
-
-        """ If a large amount of notes are played in quick succession, the
-        calls to self.plot get very expensive if the whole canvas is redrawn
-        each time. """
-        if self._plot_buffer_index == 0:
-            self._plot_buffer_index = self._get_event_buffer_size()
-        self._add_to_plot_buffer(event = opening_event)
-        self._handle_plot_buffer()
-        self._draw_check()
-
-    @log_class
-    def _add_to_plot_buffer(self, event):
-        self._plot_buffer.append(event)
-
-    @log_class
-    def _handle_plot_buffer(self):
-        if len(self._plot_buffer) < self._plot_buffer_index + 1:
-            return
-        else:
-            print("buffering %s plot events" % self._plot_buffer_index)
-            for event in self._plot_buffer[:self._plot_buffer_index - 1]:
-                self.plot(event, draw = False)
-            event = self._plot_buffer[self._plot_buffer_index - 1]
-            self.plot(event, draw = True)
-            self._plot_buffer_index = 0
-        self._plot_buffer = self._plot_buffer[self._plot_buffer_index:]
+        self.scale_axes(event)
+        self.plot(event, draw = self._draw_check())
 
     @log_class
     def _note_num_to_name(self, note):
@@ -224,6 +217,7 @@ class MidiPlot(tk.Frame):
 
     @log_class
     def _get_y_value(self, note):
+        """ Get the y coordinates of a midi note """
         note = note - 21
         octaves = note // 12
         note_index = note % 12
@@ -232,6 +226,8 @@ class MidiPlot(tk.Frame):
 
     @log_class
     def _get_note_colour(self, note):
+        """ Get the colour of a note depending on if it is a white or black
+        note """
         wht = "blue"; blk = "black"
         index = note % 12
         colours = [wht, blk, wht, blk, wht, wht, blk, wht, blk, wht, blk, wht]
