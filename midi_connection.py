@@ -11,9 +11,10 @@ from pygame import midi
 import midiutil
 import threading
 import time
+from datetime import datetime
 
 from mh_logging import log_class
-log_class = log_class("min")
+log_class = log_class("none")
 
 MIDI_STATUS_MAP = {
     144: "note-on",
@@ -43,6 +44,7 @@ class MidiEvent:
             self.velocity = event[0][2]
             self.channel = event[0][3]
             self.timestamp = event[1]
+            self.logged_time = datetime.now()
         # optional integer corresponding to order of event in sequence
         self.order = -1
 
@@ -239,6 +241,7 @@ class MidiConnection:
         self.set_input()
         self.event_generate("<<RecordingStart>>")
         self.recording_thread = threading.Thread(target = self._start_recording)
+        self.recording_thread.setDaemon(True)
         self.recording_thread.start()
 
     @log_class
