@@ -117,3 +117,4 @@ common/Octave Logo.psd
 *.mid
 *.midi
 *.Result
+midi_plot wip.py
