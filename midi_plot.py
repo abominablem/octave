@@ -12,7 +12,7 @@ from datetime import datetime
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib as plt
 
-from midi_connection import MidiConnection, MIDI_STATUS_MAP, MidiEvent
+from midi_connection import MidiConnection
 from mh_logging import log_class
 log_class = log_class("min")
 
@@ -31,7 +31,8 @@ class MidiPlot(tk.Frame):
         self.live_events = []
         self.plotting = False
         self.base_plot_rate = 0.2
-        self._plotted_but_undrawn = 0
+        self._plotted_events = 0
+        self._drawn_events = 0
         self._last_drawn = datetime.min
 
         self.visual_figure = plt.figure.Figure(figsize=(10, 5), dpi=100)
@@ -100,39 +101,51 @@ class MidiPlot(tk.Frame):
                 figure = self.visual_figure)
                 )
             event.drawn = True
+            self._plotted_events += 1
         elif event.status == "control-change" and event.note == 64:
             pass
             #TODO add option for pedal graph under main graph
         else:
             return
-        self._plotted_but_undrawn += 1
-        self._draw_dict[draw] += 1
-        if draw: self.draw()
+
+        if draw:
+            self.draw()
 
     @log_class
     def draw(self):
         """ Redraw the matplotlib canvas """
+        self._drawn_events = len(self.figure.patches)
         self.canvas.draw()
-        # print("Drew %s MIDI events" % self._plotted_but_undrawn)
-        self._plotted_but_undrawn = 0
+        # print("Drew %s MIDI events" % self._plotted_events - self._drawn_events)
         self._last_drawn = datetime.now()
+        self._draw_now = False
 
     @log_class
     def _draw_check(self):
         """ Check whether to draw or not based on the time since last drawn and
         number of events in the plot queue """
+        plotted_but_undrawn = self._plotted_events - self._drawn_events
+
+        # Don't plot if nothing new is drawn
+        if plotted_but_undrawn == 0:
+            return False
+        # For very slow event input rates, plot live
+        elif plotted_but_undrawn <= 7:
+            return True
+        # Draw at least every 25 midi events (very fast midi input)
+        elif plotted_but_undrawn >= 25:
+            return True
+
         since_last_draw = (datetime.now() - self._last_drawn).total_seconds()
-        # Plot at least once a second
+
+        # Plot at least every second
         if since_last_draw > 1:
             return True
         # For slow event input rates, plot at the base rate
-        elif since_last_draw > self.base_plot_rate and self._plotted_but_undrawn < 5:
+        elif since_last_draw > self.base_plot_rate and plotted_but_undrawn <= 10:
             return True
         # For medium event input rates, plot every ~1/2 a second
-        elif self._plotted_but_undrawn <= 15 and since_last_draw > 0.5:
-            return True
-        # For fast event input rates, plot at the slowest rate (every second)
-        elif self._plotted_but_undrawn >= 25:
+        elif plotted_but_undrawn <= 15 and since_last_draw > 0.5:
             return True
         else:
             return False
@@ -158,6 +171,11 @@ class MidiPlot(tk.Frame):
         self.max_timestamp = max(self.midi_events,
                                  key = lambda x: x.timestamp).timestamp
         return self.max_timestamp
+
+    @log_class
+    def get_oldest_live_event(self):
+        """ Return the oldest event that is still live """
+        return min(self.live_events, key = lambda x: x.logged_time)
 
     @log_class
     def update_live_events(self, event = None, cartesian_update = False):
