@@ -18,6 +18,7 @@ import global_const as g
 log_class = log_class(g.LOG_LEVEL)
 from base import OctaveWindowBase, octave_db
 from midi_connection import MidiConnection
+from midi_plot import MidiPlot
 
 class OctaveRecord(OctaveWindowBase):
     @log_class
@@ -105,6 +106,8 @@ class OctaveRecord(OctaveWindowBase):
         self.button_set.btn_start_playback["state"] = tk.NORMAL
         self.button_set.btn_stop_playback["state"] = tk.DISABLED
 
+        self.midi_plot = MidiPlot(self.widget_frame, self.midi_connection)
+
         widgets = {1: {'widget': self.title_bar,
                        'grid_kwargs': g.GRID_STICKY,
                        'stretch_width': True},
@@ -120,10 +123,13 @@ class OctaveRecord(OctaveWindowBase):
                    6: {'widget': self.button_set,
                        'grid_kwargs': g.GRID_STICKY_PADDING_SMALL,
                        'stretch_width': True},
+                   7: {'widget': self.midi_plot,
+                       'grid_kwargs': g.GRID_STICKY_PADDING_SMALL,
+                       'stretch_width': True, 'stretch_height': True},
                    }
         self.widget_set = tka.WidgetSet(
             self.widget_frame, widgets,
-            layout = [[1], [2, 3, 4, 5], [6]]
+            layout = [[1], [2, 3, 4, 5], [6], [7]]
             )
         self.widget_set.grid(row = 1, column = 0, **g.GRID_STICKY)
         self.window.columnconfigure(0, weight = 1)
@@ -131,25 +137,25 @@ class OctaveRecord(OctaveWindowBase):
 
     @log_class
     def start_recording(self, event = None):
-        self.button_set.widgets["btn_start_recording"]["state"] = tk.DISABLED
-        self.button_set.widgets["btn_stop_recording"]["state"] = tk.NORMAL
+        self.button_set.btn_start_recording["state"] = tk.DISABLED
+        self.button_set.btn_stop_recording["state"] = tk.NORMAL
         self.midi_connection.start_recording()
 
     @log_class
     def stop_recording(self, event = None):
-        self.button_set.widgets["btn_start_recording"]["state"] = tk.NORMAL
-        self.button_set.widgets["btn_stop_recording"]["state"] = tk.DISABLED
+        self.button_set.btn_start_recording["state"] = tk.NORMAL
+        self.button_set.btn_stop_recording["state"] = tk.DISABLED
         self.midi_connection.stop_recording()
 
     @log_class
     def start_playback(self, event = None):
-        self.btn_start_playback["state"] = tk.DISABLED
-        self.btn_stop_playback["state"] = tk.NORMAL
+        self.button_set.btn_start_playback["state"] = tk.DISABLED
+        self.button_set.btn_stop_playback["state"] = tk.NORMAL
 
     @log_class
     def stop_playback(self, event = None):
-        self.btn_start_playback["state"] = tk.NORMAL
-        self.btn_stop_playback["state"] = tk.DISABLED
+        self.button_set.btn_start_playback["state"] = tk.NORMAL
+        self.button_set.btn_stop_playback["state"] = tk.DISABLED
 
     @log_class
     def add_book(self, event = None):
