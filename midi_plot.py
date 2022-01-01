@@ -13,6 +13,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib as plt
 
 from midi_connection import MidiConnection
+from record_segment import OctaveRecordSegment
 from mh_logging import log_class
 log_class = log_class("min")
 
@@ -119,6 +120,18 @@ class MidiPlot(tk.Frame):
         # print("Drew %s MIDI events" % self._plotted_events - self._drawn_events)
         self._last_drawn = datetime.now()
         self._draw_now = False
+
+    @log_class
+    def clear(self):
+        """ Clear the matploblib canvas of all objects """
+        canvas = self.get_widget()
+        for item in canvas.find_all():
+            canvas.delete(item)
+
+    @log_class
+    def get_widget(self):
+        """ Return the tk widget for the canvas """
+        return self.canvas.get_tk_widget()
 
     @log_class
     def _draw_check(self):
