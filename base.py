@@ -12,7 +12,7 @@ from PIL import Image, ImageTk
 
 from mh_logging import log_class
 import tk_arrange as tka
-from sqlite_tablecon import TableCon
+from sqlite_tablecon import TableCon, MultiConnection
 
 import global_const as g
 import futil
@@ -152,20 +152,8 @@ class OctaveWindowBase:
         self.window.grab_set()
         self.window.mainloop()
 
-class OctaveConnections:
-    def __init__(self, db, tables = None):
-        self.db = db
-        if tables is None:
-            raise AttributeError("At least one table must be specified")
-        elif not isinstance(tables, list):
-            tables = [tables]
-
-        for table in tables:
-            self.__dict__[table] = TableCon(db = db, table = table,
-                                            debug = g.DEBUG)
-
-octave_db = OctaveConnections(r".\data\octave_sqlite.db",
-                              ["books", "records", "tags"])
+octave_db = MultiConnection(r".\data\octave_sqlite.db",
+                            ["books", "records", "tags"])
 
 
 if __name__ == "__main__":
