@@ -13,7 +13,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib as plt
 
 from midi_connection import MidiConnection
-from record_segment import OctaveRecordSegment
 from mh_logging import log_class
 log_class = log_class("min")
 
