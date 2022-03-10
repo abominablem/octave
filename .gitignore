@@ -118,3 +118,4 @@ common/Octave Logo.psd
 *.midi
 *.Result
 midi_plot wip.py
+data/octave_sqlite.db
