@@ -72,6 +72,7 @@ class Octave:
 
         self.style()
 
+    @log_class
     def open_window(self, event, window):
         if window == "play":
             self.octave_play = OctavePlay(self.root, "Octave - Play")
